@@ -1,0 +1,16 @@
+e76538aadd76ca10e9c7083a394a70b2 *DESCRIPTION
+190ff58f7e889abf6ae0012896e15950 *NAMESPACE
+7bb428b8b340d2ad613a8b8095d83a85 *R/data.R
+f0294bd7cae7ce340aee924bdf85b8c2 *R/functions.R
+f81893faeeb4fae6144d9ba1d6c25347 *build/vignette.rds
+9bb3434584d5ac3deced3565b01232d2 *data/example_data.rda
+dbf303f16d9a1a27affc3b61279489c4 *inst/doc/my-vignette.R
+f63e4be521531c1529d95ccca7b401d5 *inst/doc/my-vignette.Rmd
+c5bdca71f506970a6cc2167bd39426be *inst/doc/my-vignette.html
+a7f87c2edc697ac9edfbadc1ef41c410 *man/coef.tandem.Rd
+f1fe2009ae1a26a3dfe10b74e91177bc *man/example_data.Rd
+bee5f092d8bac5f01afe4d448935f102 *man/nested.cv.Rd
+7d37abf9174eadcb9aecf3ee324adf06 *man/predict.tandem.Rd
+71c389dde0cdfe8b07269333675c1211 *man/relative.contributions.Rd
+4c4a8296ae6124688c054e3b7e287d0d *man/tandem.Rd
+f63e4be521531c1529d95ccca7b401d5 *vignettes/my-vignette.Rmd
