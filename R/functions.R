@@ -10,6 +10,8 @@
 #' @param family The family parameter that's passed to cv.glmnet(). Currently, only family='gaussian' is supported.
 #' @param nfolds Number of cross-validation folds (default is 10) used to determine the optimal lambda in cv.glmnet().
 #' @param foldid An optional vector indicating in which cross-validation fold each sample should be. Overrides nfolds when used.
+#' @param lambda_upstream For the first stage (using the upstream features), should glmnet use lambda.min or lambda.1se? Default is lambda.1se.
+#' @param lambda_downstream For the second stage (using the downstream features), should glmnet use lambda.min or lambda.1se? Default is lambda.1se.
 #' @param ... Other parameters that are passed to cv.glmnet().
 #' @return A tandem-object.
 #' @examples
@@ -23,7 +25,7 @@
 #' beta = coef(fit)
 #' y_hat = predict(fit, newx=x)
 #' @export
-tandem = function(x, y, upstream, family="gaussian", nfolds=10, foldid=NULL, ...) {
+tandem = function(x, y, upstream, family="gaussian", nfolds=10, foldid=NULL, lambda_upstream="lambda.1se", lambda_downstream="lambda.1se", ...) {
   if(class(x)!="matrix" | !class(x[1,1]) %in% c("numeric","integer"))
     stop("x needs to be a numeric matrix")
   if(!class(y) %in% c("numeric", "integer"))
@@ -42,6 +44,10 @@ tandem = function(x, y, upstream, family="gaussian", nfolds=10, foldid=NULL, ...
     stop("NAs in y are not allowed")
   if(nrow(x)<nfolds)
     stop("nfolds should be smaller than the number of samples")
+  if(!lambda_upstream %in% c("lambda.1se", "lambda.min"))
+    stop("lambda_upstream should be either lambda.1se or lambda.min")
+  if(!lambda_downstream %in% c("lambda.1se", "lambda.min"))
+    stop("lambda_downstream should be either lambda.1se or lambda.min")
 
   if(is.null(foldid)) {
     n = length(y)
@@ -49,11 +55,13 @@ tandem = function(x, y, upstream, family="gaussian", nfolds=10, foldid=NULL, ...
   }
 
   fit1 = glmnet::cv.glmnet(x[,upstream], y, foldid=foldid, ...)
-  residuals = y - glmnet::predict.cv.glmnet(fit1, newx=x[,upstream])
+  residuals = y - glmnet::predict.cv.glmnet(fit1, newx=x[,upstream], s=lambda_upstream)
   fit2 = glmnet::cv.glmnet(x[,!upstream], residuals, foldid=foldid, ...)
 
   beta0 = glmnet::coef.cv.glmnet(fit1)[1] + glmnet::coef.cv.glmnet(fit2)[1]
-  beta = rbind(glmnet::coef.cv.glmnet(fit1)[-1,,drop=F], glmnet::coef.cv.glmnet(fit2)[-1,,drop=F])
+  beta = Matrix::Matrix(NA, ncol(x), 1)
+  beta[upstream,] = glmnet::coef.cv.glmnet(fit1, s=lambda_upstream)[-1,,drop=F]
+  beta[!upstream,] = glmnet::coef.cv.glmnet(fit2, s=lambda_downstream)[-1,,drop=F]
   fit = list(beta0=beta0, beta=beta)
   class(fit) = "tandem"
 
@@ -111,6 +119,9 @@ predict.tandem = function(object, newx, ...) {
 #' @param nfolds Number of cross-validation folds (default is 10) used in the outer cross-validation loop.
 #' @param nfolds_inner Number of cross-validation folds (default is 10) used to determine the optimal lambda in the inner cross-validation loop.
 #' @param foldid An optional vector indicating in which cross-validation fold each sample should be in the outer cross-validation loop. Overrides nfolds when used.
+#' @param lambda_upstream Only used when method='tandem'. For the first stage (using the upstream features), should glmnet use lambda.min or lambda.1se? Default is lambda.1se.
+#' @param lambda_downstream Only used when method='tandem'. For the second stage (using the downstream features), should glmnet use lambda.min or lambda.1se? Default is lambda.1se.
+#' @param lambda_glmnet Only used when method='glmnet'. Should glmnet use lambda.min or lambda.1se? Default is lambda.1se.
 #' @param ... Other parameters that are passed to cv.glmnet().
 #' @return The predicted response vector y_hat and the mean-squared error (MSE).
 #' @examples
@@ -127,7 +138,8 @@ predict.tandem = function(object, newx, ...) {
 #' cv_glmnet = nested.cv(x, y, upstream, method="glmnet", alpha=0.5)
 #' barplot(c(cv_tandem$mse, cv_glmnet$mse), ylab="MSE", names=c("TANDEM", "Classic approach"))
 #' @export
-nested.cv = function(x, y, upstream, method, family="gaussian", nfolds=10, nfolds_inner=10, foldid=NULL, ...) {
+nested.cv = function(x, y, upstream, method="tandem", family="gaussian", nfolds=10, nfolds_inner=10, foldid=NULL,
+                     lambda_upstream="lambda.1se", lambda_downstream="lambda.1se", lambda_glmnet="lambda.1se",...) {
   if(class(x)!="matrix" | !class(x[1,1]) %in% c("numeric","integer"))
     stop("x needs to be a numeric matrix")
   if(!class(y) %in% c("numeric", "integer"))
@@ -146,6 +158,12 @@ nested.cv = function(x, y, upstream, method, family="gaussian", nfolds=10, nfold
     stop("NAs in y are not allowed")
   if(!method %in% c("tandem", "glmnet"))
     stop("method should equal 'tandem' or 'glmnet'")
+  if(!lambda_upstream %in% c("lambda.1se", "lambda.min"))
+    stop("lambda_upstream should be either lambda.1se or lambda.min")
+  if(!lambda_downstream %in% c("lambda.1se", "lambda.min"))
+    stop("lambda_downstream should be either lambda.1se or lambda.min")
+  if(!lambda_glmnet %in% c("lambda.1se", "lambda.min"))
+    stop("lambda_glmnet should be either lambda.1se or lambda.min")
 
   if(is.null(foldid)) {
     n = length(y)
@@ -163,11 +181,11 @@ nested.cv = function(x, y, upstream, method, family="gaussian", nfolds=10, nfold
     foldid_i = ceiling(sample(1:n_i)/n_i * nfolds_inner)
 
     if(method=="tandem") {
-      fit = tandem(x_train, y_train, upstream, family=family, foldid=foldid_i, ...)
+      fit = tandem(x_train, y_train, upstream, family=family, foldid=foldid_i, lambda_upstream=lambda_upstream, lambda_downstream=lambda_downstream, ...)
       y_hat[ind] = as.vector(predict.tandem(fit, newx=x_test))
     } else {
       fit = glmnet::cv.glmnet(x_train, y_train, family=family, foldid=foldid_i, ...)
-      y_hat[ind] = as.vector(glmnet::predict.cv.glmnet(fit, newx=x_test))
+      y_hat[ind] = as.vector(glmnet::predict.cv.glmnet(fit, newx=x_test, s=lambda_glmnet))
     }
   }
   mse = mean((y-y_hat)^2)
@@ -197,6 +215,9 @@ coef.tandem = function(object, ...) {
   if(class(object)!="tandem")
     stop("object needs to be a tandem-object")
 
+  if(length(rownames(object$beta))==0) {
+    rownames(object$beta) = 1:nrow(object$beta)
+  }
   beta = rbind(object$beta0,object$beta)
   rownames(beta)[1] = "(Intercept)"
   return(beta)
@@ -261,6 +282,7 @@ relative.contributions = function(fit, x, data_types) {
   if(ncol(x)!=length(data_types))
     stop("Data types should be a vector of length equal to the number of columns in x")
 
+  x = scale(x, center=T, scale=F)
   p = ncol(x)
   betas = list()
   for(i in unique(data_types)) {
@@ -268,7 +290,7 @@ relative.contributions = function(fit, x, data_types) {
     ind = data_types==i
     if(class(fit)=="tandem") {
       beta[ind] = coef.tandem(fit)[-1][ind]
-    } else if(class(fit)=="glmnet") {
+    } else if(class(fit)=="cv.glmnet") {
       beta[ind] = glmnet::coef.cv.glmnet(fit)[-1][ind]
     }
     i = as.character(i)

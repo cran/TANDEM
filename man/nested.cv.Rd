@@ -4,8 +4,10 @@
 \alias{nested.cv}
 \title{Estimating predictive performance via nested cross-validation}
 \usage{
-nested.cv(x, y, upstream, method, family = "gaussian", nfolds = 10,
-  nfolds_inner = 10, foldid = NULL, ...)
+nested.cv(x, y, upstream, method = "tandem", family = "gaussian",
+  nfolds = 10, nfolds_inner = 10, foldid = NULL,
+  lambda_upstream = "lambda.1se", lambda_downstream = "lambda.1se",
+  lambda_glmnet = "lambda.1se", ...)
 }
 \arguments{
 \item{x}{A feature matrix, where the rows correspond to samples and the columns to features.}
@@ -23,6 +25,12 @@ nested.cv(x, y, upstream, method, family = "gaussian", nfolds = 10,
 \item{nfolds_inner}{Number of cross-validation folds (default is 10) used to determine the optimal lambda in the inner cross-validation loop.}
 
 \item{foldid}{An optional vector indicating in which cross-validation fold each sample should be in the outer cross-validation loop. Overrides nfolds when used.}
+
+\item{lambda_upstream}{Only used when method='tandem'. For the first stage (using the upstream features), should glmnet use lambda.min or lambda.1se? Default is lambda.1se.}
+
+\item{lambda_downstream}{Only used when method='tandem'. For the second stage (using the downstream features), should glmnet use lambda.min or lambda.1se? Default is lambda.1se.}
+
+\item{lambda_glmnet}{Only used when method='glmnet'. Should glmnet use lambda.min or lambda.1se? Default is lambda.1se.}
 
 \item{...}{Other parameters that are passed to cv.glmnet().}
 }

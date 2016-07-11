@@ -5,7 +5,7 @@
 \title{Fits a TANDEM model by performing a two-stage regression}
 \usage{
 tandem(x, y, upstream, family = "gaussian", nfolds = 10, foldid = NULL,
-  ...)
+  lambda_upstream = "lambda.1se", lambda_downstream = "lambda.1se", ...)
 }
 \arguments{
 \item{x}{A feature matrix, where the rows correspond to samples and the columns to features.}
@@ -19,6 +19,10 @@ tandem(x, y, upstream, family = "gaussian", nfolds = 10, foldid = NULL,
 \item{nfolds}{Number of cross-validation folds (default is 10) used to determine the optimal lambda in cv.glmnet().}
 
 \item{foldid}{An optional vector indicating in which cross-validation fold each sample should be. Overrides nfolds when used.}
+
+\item{lambda_upstream}{For the first stage (using the upstream features), should glmnet use lambda.min or lambda.1se? Default is lambda.1se.}
+
+\item{lambda_downstream}{For the second stage (using the downstream features), should glmnet use lambda.min or lambda.1se? Default is lambda.1se.}
 
 \item{...}{Other parameters that are passed to cv.glmnet().}
 }
