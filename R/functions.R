@@ -59,9 +59,11 @@ tandem = function(x, y, upstream, family="gaussian", nfolds=10, foldid=NULL, lam
   fit2 = glmnet::cv.glmnet(x[,!upstream], residuals, foldid=foldid, ...)
 
   beta0 = glmnet::coef.cv.glmnet(fit1)[1] + glmnet::coef.cv.glmnet(fit2)[1]
-  beta = Matrix::Matrix(NA, ncol(x), 1)
-  beta[upstream,] = glmnet::coef.cv.glmnet(fit1, s=lambda_upstream)[-1,,drop=F]
-  beta[!upstream,] = glmnet::coef.cv.glmnet(fit2, s=lambda_downstream)[-1,,drop=F]
+  beta = matrix(NA, ncol(x), 1)
+  beta[upstream,] = as.matrix(glmnet::coef.cv.glmnet(fit1, s=lambda_upstream)[-1,,drop=F])
+  beta[!upstream,] = as.matrix(glmnet::coef.cv.glmnet(fit2, s=lambda_downstream)[-1,,drop=F])
+  rownames(beta) = colnames(x)
+  beta = Matrix::Matrix(beta)
   fit = list(beta0=beta0, beta=beta)
   class(fit) = "tandem"
 
