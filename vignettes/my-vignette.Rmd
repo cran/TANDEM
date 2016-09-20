@@ -9,7 +9,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-TANDEM is a two-stage regression method that can be used when various input data types are correlated, for example gene expression and methylation in drug response prediction. In the first stage it uses the upstream features (such as methylation) to predict the response variable (such as drug response), and in the second stage it uses the downstream features (such as gene expression) to predict the residuals of the first stage. In our manuscript (Aben et al., 2016, in press), we show that using TANDEM prevents the model from being dominated by gene expression and that the features selected by TANDEM are more interpretable.
+TANDEM is a two-stage regression method that can be used when various input data types are correlated, for example gene expression and methylation in drug response prediction. In the first stage it uses the upstream features (such as methylation) to predict the response variable (such as drug response), and in the second stage it uses the downstream features (such as gene expression) to predict the residuals of the first stage. In our manuscript (Aben et al., 2016), we show that using TANDEM prevents the model from being dominated by gene expression and that the features selected by TANDEM are more interpretable.
 
 This vignette provides a code example for various parts that covers all parts of the package. The example starts by loading an artificial data example. 
 
@@ -64,3 +64,6 @@ cv_glmnet = nested.cv(x, y, upstream, method="glmnet", alpha=0.5)
 par(mar=c(8,4,1,1))
 barplot(c(cv_tandem$mse, cv_glmnet$mse), ylab="MSE", names=c("TANDEM", "Classic approach"), las=2)
 ```
+
+## References
+Aben, Nanne, et al. "TANDEM: a two-stage approach to maximize interpretability of drug response models based on multiple molecular data types." Bioinformatics 32.17 (2016): i413-i420.
