@@ -26,11 +26,11 @@
 #' y_hat = predict(fit, newx=x)
 #' @export
 tandem = function(x, y, upstream, family="gaussian", nfolds=10, foldid=NULL, lambda_upstream="lambda.1se", lambda_downstream="lambda.1se", ...) {
-  if(class(x)!="matrix" | !class(x[1,1]) %in% c("numeric","integer"))
+  if(!is.matrix(x) | !is.numeric(x))
     stop("x needs to be a numeric matrix")
-  if(!class(y) %in% c("numeric", "integer"))
+  if(!is.numeric(y))
     stop("y needs to be a numeric vector")
-  if(class(upstream)!="logical")
+  if(!is.logical(upstream))
     stop("upstream needs to a logical index vector, integer index vectors are currently not supported")
   if(nrow(x)!=length(y))
     stop("Number of samples in x and y don't match")
@@ -55,13 +55,13 @@ tandem = function(x, y, upstream, family="gaussian", nfolds=10, foldid=NULL, lam
   }
 
   fit1 = glmnet::cv.glmnet(x[,upstream], y, foldid=foldid, ...)
-  residuals = y - glmnet::predict.cv.glmnet(fit1, newx=x[,upstream], s=lambda_upstream)
+  residuals = y - stats::predict(fit1, newx=x[,upstream], s=lambda_upstream)
   fit2 = glmnet::cv.glmnet(x[,!upstream], residuals, foldid=foldid, ...)
 
-  beta0 = glmnet::coef.cv.glmnet(fit1, s=lambda_upstream)[1] + glmnet::coef.cv.glmnet(fit2, s=lambda_downstream)[1]
+  beta0 =stats::coef(fit1, s=lambda_upstream)[1] +stats::coef(fit2, s=lambda_downstream)[1]
   beta = matrix(NA, ncol(x), 1)
-  beta[upstream,] = as.matrix(glmnet::coef.cv.glmnet(fit1, s=lambda_upstream)[-1,,drop=F])
-  beta[!upstream,] = as.matrix(glmnet::coef.cv.glmnet(fit2, s=lambda_downstream)[-1,,drop=F])
+  beta[upstream,] = as.matrix(stats::coef(fit1, s=lambda_upstream)[-1,,drop=F])
+  beta[!upstream,] = as.matrix(stats::coef(fit2, s=lambda_downstream)[-1,,drop=F])
   rownames(beta) = colnames(x)
   beta = Matrix::Matrix(beta)
   fit = list(beta0=beta0, beta=beta)
@@ -94,7 +94,7 @@ predict.tandem = function(object, newx, ...) {
 
   if(class(object)!="tandem")
     stop("object needs to be a tandem-object")
-  if(class(x)!="matrix" | !class(x[1,1]) %in% c("numeric","integer"))
+  if(!is.matrix(x) | !is.numeric(x))
     stop("x needs to be a numeric matrix")
   if(nrow(object$beta)!=ncol(x))
     stop("Number of features in the fitted tandem object does not match number of features in x")
@@ -142,11 +142,11 @@ predict.tandem = function(object, newx, ...) {
 #' @export
 nested.cv = function(x, y, upstream, method="tandem", family="gaussian", nfolds=10, nfolds_inner=10, foldid=NULL,
                      lambda_upstream="lambda.1se", lambda_downstream="lambda.1se", lambda_glmnet="lambda.1se",...) {
-  if(class(x)!="matrix" | !class(x[1,1]) %in% c("numeric","integer"))
+  if(!is.matrix(x) | !is.numeric(x))
     stop("x needs to be a numeric matrix")
-  if(!class(y) %in% c("numeric", "integer"))
+  if(!is.numeric(y))
     stop("y needs to be a numeric vector")
-  if(class(upstream)!="logical")
+  if(!is.logical(upstream))
     stop("upstream needs to a logical index vector, integer index vectors are currently not supported")
   if(nrow(x)!=length(y))
     stop("Number of samples in x and y don't match")
@@ -187,7 +187,7 @@ nested.cv = function(x, y, upstream, method="tandem", family="gaussian", nfolds=
       y_hat[ind] = as.vector(predict.tandem(fit, newx=x_test))
     } else {
       fit = glmnet::cv.glmnet(x_train, y_train, family=family, foldid=foldid_i, ...)
-      y_hat[ind] = as.vector(glmnet::predict.cv.glmnet(fit, newx=x_test, s=lambda_glmnet))
+      y_hat[ind] = as.vector(stats::predict(fit, newx=x_test, s=lambda_glmnet))
     }
   }
   mse = mean((y-y_hat)^2)
@@ -296,7 +296,7 @@ relative.contributions = function(fit, x, data_types, lambda_glmnet="lambda.1se"
     if(class(fit)=="tandem") {
       beta[ind] = coef.tandem(fit)[-1][ind]
     } else if(class(fit)=="cv.glmnet") {
-      beta[ind] = glmnet::coef.cv.glmnet(fit, s=lambda_glmnet)[-1][ind]
+      beta[ind] =stats::coef(fit, s=lambda_glmnet)[-1][ind]
     }
     i = as.character(i)
     betas[[i]] = beta
